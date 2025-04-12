@@ -18,7 +18,7 @@ const OrderSchema = new mongoose.Schema({
   // Campos para gestión de pedidos y facturación (Kanban)
   invoiceStatus: { 
     type: String, 
-    enum: ['remito', 'factura_pendiente', 'factura_cobrada', 'pedido_completo'], 
+    enum: ['remito', 'remito_finalizado', 'factura_pendiente', 'factura_cobrada', 'pedido_completo'], 
     default: 'remito' 
   },
   invoiceNumber: { type: String },

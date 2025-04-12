@@ -168,6 +168,32 @@ router.put('/products/:id', async (req, res) => {
   }
 });
 
+// Eliminar un producto
+router.delete('/products/:id', async (req, res) => {
+  try {
+    console.log(`DELETE /products/${req.params.id} - Deleting product`);
+    
+    // Validar que el ID sea válido para MongoDB
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log(`Invalid product ID format: ${req.params.id}`);
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+    
+    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+    
+    if (!deletedProduct) {
+      console.log(`Product not found with ID: ${req.params.id}`);
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    console.log('Product deleted successfully');
+    res.json({ message: 'Product deleted successfully', deletedProduct });
+  } catch (err) {
+    console.error(`Error deleting product ${req.params.id}:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // CRUD para Pedidos
 router.post('/orders', async (req, res) => {
   try {
@@ -223,14 +249,43 @@ router.get('/orders/:id', async (req, res) => {
 
 router.put('/orders/:id', async (req, res) => {
   try {
-    // Actualizar el total antes de guardar
-    const items = req.body.items;
-    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    console.log(`PUT /orders/${req.params.id} - Updating order with data:`, req.body);
     
-    const orderData = {
-      ...req.body,
-      total
-    };
+    // Validar que el ID sea válido para MongoDB
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log(`Invalid order ID format: ${req.params.id}`);
+      return res.status(400).json({ error: 'Invalid order ID format' });
+    }
+    
+    // Primero obtener el pedido existente
+    const existingOrder = await Order.findById(req.params.id);
+    if (!existingOrder) {
+      console.log(`Order not found with ID: ${req.params.id}`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Preparar los datos para actualización
+    let orderData = {};
+    
+    // Si solo estamos actualizando el estado de facturación
+    if (req.body.invoiceStatus && Object.keys(req.body).length === 1) {
+      console.log(`Updating only invoice status to: ${req.body.invoiceStatus}`);
+      orderData = { invoiceStatus: req.body.invoiceStatus };
+    } 
+    // Si estamos actualizando items, recalcular el total
+    else if (req.body.items) {
+      const total = req.body.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      orderData = {
+        ...req.body,
+        total
+      };
+    }
+    // Para otras actualizaciones parciales
+    else {
+      orderData = req.body;
+    }
+    
+    console.log('Updating order with data:', orderData);
     
     const order = await Order.findByIdAndUpdate(
       req.params.id,
@@ -240,10 +295,37 @@ router.put('/orders/:id', async (req, res) => {
     .populate('customer')
     .populate('items.product');
     
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    console.log('Order updated successfully');
     res.json(order);
   } catch (err) {
+    console.error(`Error updating order ${req.params.id}:`, err);
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Eliminar un pedido
+router.delete('/orders/:id', async (req, res) => {
+  try {
+    console.log(`DELETE /orders/${req.params.id} - Deleting order`);
+    
+    // Validar que el ID sea válido para MongoDB
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log(`Invalid order ID format: ${req.params.id}`);
+      return res.status(400).json({ error: 'Invalid order ID format' });
+    }
+    
+    const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+    
+    if (!deletedOrder) {
+      console.log(`Order not found with ID: ${req.params.id}`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log('Order deleted successfully');
+    res.json({ message: 'Order deleted successfully', deletedOrder });
+  } catch (err) {
+    console.error(`Error deleting order ${req.params.id}:`, err);
+    res.status(500).json({ error: err.message });
   }
 });
 

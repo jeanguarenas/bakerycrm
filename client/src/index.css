@@ -11,3 +11,47 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Estilos para el tablero Kanban */
+.kanban-column {
+  transition: all 0.3s ease;
+}
+
+.kanban-column:hover {
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.hover-effect:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Estilo para tarjetas mientras se arrastran */
+.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* Estilos para la zona de soltar cuando se está arrastrando */
+[data-rbd-droppable-id].isDraggingOver {
+  background-color: rgba(144, 238, 144, 0.2) !important;
+  border: 2px dashed #28a745 !important;
+}
+
+/* Efecto cuando está encima de una zona válida para soltar */
+.kanban-items[data-rbd-droppable-id][data-rbd-droppable-state="hover"] {
+  background-color: rgba(144, 238, 144, 0.3) !important;
+  border: 2px dashed #28a745 !important;
+}
+
+/* Estilos para las tarjetas dentro del tablero */
+.kanban-card {
+  margin-bottom: 10px;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}

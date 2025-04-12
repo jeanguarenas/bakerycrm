@@ -4,12 +4,26 @@ import './index.css';
 import App from './App';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import reportWebVitals from './reportWebVitals';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+// Quitamos StrictMode para evitar problemas con react-beautiful-dnd
 root.render(
-  <React.StrictMode>
+  <>
     <App />
-  </React.StrictMode>
+    <ToastContainer 
+      position="top-right"
+      autoClose={3000}
+      hideProgressBar={false}
+      newestOnTop
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+    />
+  </>
 );
 
 // If you want to start measuring performance in your app, pass a function

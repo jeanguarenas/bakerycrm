@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
 import CustomersPage from './pages/CustomersPage';
 import ProductsPage from './pages/ProductsPage';
 import OrdersPage from './pages/OrdersPage';
@@ -12,11 +13,14 @@ import OrderFormPage from './pages/OrderFormPage';
 import InventoryPage from './pages/InventoryPage';
 import InvoiceManagementPage from './pages/InvoiceManagementPage';
 
+// Importar estilos personalizados
+import './styles/Dashboard.css';
+
 function App() {
   return (
     <Router>
       <Navbar />
-      <div className="container mt-4">
+      <div className="app-content">
         <Routes>
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/new" element={<CustomerFormPage />} />
@@ -31,7 +35,8 @@ function App() {
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/invoice-management" element={<InvoiceManagementPage />} />
-          <Route path="/" element={<CustomersPage />} />
+          <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder para futura página de análisis */}
+          <Route path="/" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>

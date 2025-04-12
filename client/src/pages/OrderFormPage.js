@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const OrderFormPage = () => {
   const { id } = useParams();
@@ -8,7 +9,7 @@ const OrderFormPage = () => {
   
   const [formData, setFormData] = useState({
     customer: '',
-    items: [{ product: '', quantity: 1, price: 0 }],
+    items: [{ product: '', quantity: 1, price: 0, id: 'item-initial' }],
     deliveryType: 'store',
     deliveryAddress: '',
     deliveryDate: '',
@@ -126,7 +127,7 @@ const OrderFormPage = () => {
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { product: '', quantity: 1, price: 0 }]
+      items: [...prev.items, { product: '', quantity: 1, price: 0, id: `item-${Date.now()}` }]
     }));
   };
 
@@ -139,6 +140,21 @@ const OrderFormPage = () => {
         items: newItems
       }));
     }
+  };
+  
+  // Manejar el arrastre y soltar de elementos
+  const onDragEnd = (result) => {
+    // Si no hay destino, no hacemos nada
+    if (!result.destination) return;
+    
+    const items = Array.from(formData.items);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    setFormData(prev => ({
+      ...prev,
+      items: items
+    }));
   };
 
   const calculateTotal = () => {

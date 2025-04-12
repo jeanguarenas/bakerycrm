@@ -59,83 +59,48 @@ const InvoiceManagementPage = () => {
   // Arreglo estable de IDs de columnas para asegurar que nunca cambie el orden
   const columnOrder = ['remito', 'remito_finalizado', 'factura_pendiente', 'factura_cobrada', 'pedido_completo'];
 
-  // Función para cargar pedidos (ahora fuera del useEffect para poder reutilizarla)
-  const fetchOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/orders');
-      if (!response.ok) {
-        throw new Error('Error al cargar los pedidos');
-      }
-      
-      const data = await response.json();
-      
-      // Creamos un objeto de columnas desde cero en lugar de depender del estado columns actual
-      const newColumns = {
-        remito: {
-          id: 'remito',
-          title: 'Remito',
-          items: []
-        },
-        remito_finalizado: {
-          id: 'remito_finalizado',
-          title: 'Remitos Finalizados',
-          items: []
-        },
-        factura_pendiente: {
-          id: 'factura_pendiente',
-          title: 'Factura Pendiente',
-          items: []
-        },
-        factura_cobrada: {
-          id: 'factura_cobrada',
-          title: 'Factura Cobrada',
-          items: []
-        },
-        pedido_completo: {
-          id: 'pedido_completo',
-          title: 'Pedido Completo',
-          items: []
-        }
-      };
-      
-      // Distribuir los pedidos en las columnas según su estado
-      data.forEach(order => {
-        // Verificar que la orden tiene un ID válido antes de procesarla
-        if (order && order._id) {
-          const columnId = order.invoiceStatus || 'remito';
-          
-          // Verificar que existe la columna correspondiente
-          if (newColumns[columnId]) {
-            // Agregar a la columna correspondiente con todas las propiedades necesarias
-            newColumns[columnId].items.push({
-              ...order,
-              id: order._id, // ID explícito para react-beautiful-dnd
-              _id: order._id // Asegurar que _id siempre está presente
-            });
-          }
-        } else {
-          console.warn('Se encontró una orden sin ID válido:', order);
-        }
-      });
-      
-      setColumns(newColumns);
-      setOrders(data);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Ya no depende de columns
-
   // Cargar pedidos al inicio
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    const fetchOrders = async () => {
+      try {
+        const response = await fetch('/api/orders');
+        if (!response.ok) {
+          throw new Error('Error al cargar los pedidos');
+        }
+        
+        const data = await response.json();
+        
+        // Inicializar nuevo objeto de columnas
+        const newColumns = JSON.parse(JSON.stringify(columns));
+        
+        // Resetear las listas de items
+        Object.keys(newColumns).forEach(key => {
+          newColumns[key].items = [];
+        });
+        
+        // Distribuir los pedidos en las columnas según su estado
+        data.forEach(order => {
+          const columnId = order.invoiceStatus || 'remito';
+          if (newColumns[columnId]) {
+            newColumns[columnId].items.push({
+              ...order,
+              id: order._id // Asegurar que tiene un id único para react-beautiful-dnd
+            });
+          }
+        });
+        
+        setColumns(newColumns);
+        setOrders(data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
 
-  // Estado local para rastrear si hay una operación de API en curso
-  const [isUpdating, setIsUpdating] = useState(false);
+    fetchOrders();
+  }, []);
 
   // Manejar el evento de finalización de arrastre
   const onDragEnd = useCallback(async (result) => {
@@ -153,114 +118,69 @@ const InvoiceManagementPage = () => {
     ) {
       return;
     }
-
+    
     try {
-      // OPTIMIZACIÓN: Usar el operador de propagación en lugar de JSON.parse/stringify 
-      // para una copia menos costosa (rendimiento mejorado)
-      const newColumns = {};
-      
-      // Copiar solo las columnas que vamos a modificar
-      Object.keys(columns).forEach(key => {
-        if (key === source.droppableId || key === destination.droppableId) {
-          newColumns[key] = {
-            ...columns[key],
-            items: [...columns[key].items]
-          };
-        } else {
-          newColumns[key] = columns[key];
-        }
-      });
+      // Crear una copia de las columnas actuales
+      const newColumns = JSON.parse(JSON.stringify(columns));
       
       // Obtener las columnas de origen y destino
       const sourceColumn = newColumns[source.droppableId];
       const destColumn = newColumns[destination.droppableId];
       
-      // Verificaciones de seguridad (abreviadas)
-      if (!sourceColumn || !destColumn || 
-          !Array.isArray(sourceColumn.items) ||
-          source.index < 0 || source.index >= sourceColumn.items.length) {
-        toast.error('Error en operación de arrastrar y soltar');
-        return;
-      }
-
       // Obtener el pedido que se está moviendo
       const [removedOrder] = sourceColumn.items.splice(source.index, 1);
       
-      if (!removedOrder || !removedOrder._id) {
-        toast.error('Error: Pedido inválido');
-        return;
-      }
-      
-      // OPTIMIZACIÓN CLAVE: Actualizar el estado visual INMEDIATAMENTE
-      // para movimientos dentro de la misma columna
+      // Si se mueve dentro de la misma columna
       if (source.droppableId === destination.droppableId) {
-        // Solo reordenar (sin llamada API)
+        // Solo reordenar
         sourceColumn.items.splice(destination.index, 0, removedOrder);
-        
-        // Actualizar el estado UI inmediatamente
-        setColumns(newColumns);
-        return; // No necesitamos llamada a API para reordenar
       } 
+      // Si se mueve a otra columna
+      else {
+        // Actualizar el estado del pedido
+        const updatedOrder = {
+          ...removedOrder,
+          invoiceStatus: destination.droppableId
+        };
+        
+        // Insertar en la columna de destino
+        destColumn.items.splice(destination.index, 0, updatedOrder);
+        
+        // Actualizar en la base de datos
+        try {
+          const response = await fetch(`/api/orders/${removedOrder._id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              invoiceStatus: destination.droppableId
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Error al actualizar: ${response.status} - ${errorData}`);
+          }
+          
+          toast.success('Pedido actualizado correctamente');
+        } catch (error) {
+          console.error('Error updating order:', error);
+          toast.error(`Error: ${error.message}`);
+          
+          // No actualizamos el estado en caso de error
+          return;
+        }
+      }
       
-      // Si se mueve a otra columna (cambio de estado)
-      // Actualizar el estado del pedido localmente
-      const updatedOrder = {
-        ...removedOrder,
-        invoiceStatus: destination.droppableId
-      };
-      
-      // Insertar en la columna de destino
-      destColumn.items.splice(destination.index, 0, updatedOrder);
-      
-      // IMPORTANTE: Actualizar UI ANTES de la llamada API para una experiencia fluida
+      // Actualizar el estado
       setColumns(newColumns);
-      
-      // Evitar múltiples llamadas API simultáneas
-      if (isUpdating) {
-        console.warn('Operación API en progreso, esperando...');
-        return;
-      }
-      
-      // Marcar que estamos haciendo una actualización API
-      setIsUpdating(true);
-      
-      // Actualizar en la base de datos (en segundo plano)
-      try {
-        if (!removedOrder._id) {
-          throw new Error('ID de pedido inválido');
-        }
-        
-        const response = await fetch(`/api/orders/${removedOrder._id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            invoiceStatus: destination.droppableId
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.text();
-          throw new Error(`Error al actualizar: ${response.status} - ${errorData}`);
-        }
-        
-        toast.success('Pedido actualizado correctamente');
-      } catch (error) {
-        console.error('Error actualizando pedido:', error);
-        toast.error(`Error: ${error.message}`);
-        
-        // Si hay error, revertir los cambios
-        fetchOrders(); // Recargar datos desde el servidor
-      } finally {
-        // Independientemente del resultado, marcar que terminamos
-        setIsUpdating(false);
-      }
     } catch (error) {
-      console.error('Error en drag and drop:', error);
+      console.error('Error in drag and drop:', error);
       toast.error('Error al mover el pedido');
+      setError('Error al mover el elemento: ' + error.message);
     }
-  }, [columns, isUpdating]);
+  }, [columns]);
 
   // Formato de fecha para mostrar en las tarjetas
   const formatDate = (dateString) => {
@@ -272,50 +192,34 @@ const InvoiceManagementPage = () => {
   if (error) return <div className="alert alert-danger">{error}</div>;
 
   return (
-    <div className="container-fluid p-0">
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+    <div className="container-fluid p-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestión de Pedidos y Facturación</h2>
         <Link to="/orders/new" className="btn btn-primary">Nuevo Pedido</Link>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="kanban-board d-flex" style={{ 
-          overflowX: 'auto', 
-          overflowY: 'hidden', 
-          padding: '0',
-          width: '100%',
-          gap: '0',
-          margin: '0'
-        }}>
+        <div className="kanban-board d-flex" style={{ overflowX: 'auto', overflowY: 'hidden', padding: '10px 0' }}>
           {columnOrder.map(columnId => {
             const column = columns[columnId];
             return (
-              <div 
-                className="kanban-column px-1" 
-                key={columnId} 
-                style={{ 
-                  width: '20%',
-                  minWidth: '300px',
-                  flex: '1 1 20%'
-                }}>
+              <div className="kanban-column mx-2" key={columnId} style={{ width: '300px', flexShrink: 0 }}>
                 <h5 className="p-2 bg-light border rounded-top text-center fw-bold">{column.title}</h5>
                 <Droppable droppableId={columnId} type="ORDER" direction="vertical">
                   {(provided) => (
                     <div
                       className="kanban-items p-2 border border-top-0 bg-light rounded-bottom"
                       style={{ 
-                        minHeight: '500px',
+                        height: '550px',
                         backgroundColor: '#f8f9fa',
                         display: 'flex',
                         flexDirection: 'column',
-                        overflowY: column.items.length > 8 ? 'auto' : 'visible',
-                        height: column.items.length > 8 ? 'calc(100vh - 150px)' : 'auto',
-                        maxHeight: column.items.length > 8 ? 'calc(100vh - 150px)' : 'none'
+                        overflowY: 'auto'
                       }}
                       {...provided.droppableProps}
                       ref={provided.innerRef}
                     >
-                      {column.items.filter(order => order && order._id).map((order, index) => (
+                      {column.items.map((order, index) => (
                         <Draggable 
                           key={order._id} 
                           draggableId={order._id}
@@ -328,22 +232,16 @@ const InvoiceManagementPage = () => {
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                               style={{
-                                // Aplica los estilos del arrastre, pero con modificaciones
                                 ...provided.draggableProps.style,
-                                // Fuerza un ancho fijo y evita stretching
-                                width: snapshot.isDragging ? '280px' : '100%',
-                                height: 'auto',
-                                // Mantén los márgenes consistentes
+                                userSelect: 'none',
+                                width: '100%',
                                 margin: '0 0 12px 0',
-                                // Estilos visuales mejorados
                                 backgroundColor: snapshot.isDragging ? '#e9f5ff' : 'white',
                                 cursor: 'grab',
                                 border: snapshot.isDragging ? '2px solid #007bff' : '1px solid #dee2e6',
                                 boxShadow: snapshot.isDragging ? '0 5px 15px rgba(0,123,255,0.3)' : '0 2px 5px rgba(0,0,0,0.05)',
                                 borderRadius: '6px',
-                                // Desactiva transiciones durante arrastre para mejor rendimiento
-                                transition: 'none',
-                                // Importante: no sobrescribir el transform que aplica react-beautiful-dnd
+                                transition: 'none'
                               }}
                             >
                               <div className="card-body">
