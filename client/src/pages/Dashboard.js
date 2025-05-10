@@ -90,7 +90,7 @@ const Dashboard = () => {
     {
       id: 'orders',
       title: 'Pedidos',
-      description: 'Administración de pedidos',
+      description: 'Administración de pedidos y facturación',
       icon: <FaShoppingBag size={32} />,
       color: colors.orders,
       path: '/orders',
@@ -113,15 +113,6 @@ const Dashboard = () => {
       color: colors.inventory,
       path: '/inventory',
       count: loading ? '...' : counters.inventory.toString()
-    },
-    {
-      id: 'invoices',
-      title: 'Gestión de pedidos',
-      description: 'Seguimiento y facturación de pedidos',
-      icon: <FaFileInvoiceDollar size={32} />,
-      color: colors.invoices,
-      path: '/invoice-management',
-      count: loading ? '...' : counters.invoices.toString()
     },
     {
       id: 'analytics',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaUsers, FaShoppingBag, FaBreadSlice, FaClipboardList, FaFileInvoiceDollar, FaFileInvoice, FaChartLine } from 'react-icons/fa';
+import { FaHome, FaUsers, FaShoppingBag, FaBreadSlice, FaClipboardList, FaFileInvoice, FaChartLine } from 'react-icons/fa';
 
 export default function Navbar() {
   const location = useLocation();
@@ -45,11 +45,6 @@ export default function Navbar() {
             <li className="nav-item">
               <Link className={`nav-link d-flex align-items-center ${isActive('/inventory')}`} to="/inventory">
                 <FaClipboardList className="me-2" /> Inventario
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className={`nav-link d-flex align-items-center ${isActive('/invoice-management')}`} to="/invoice-management">
-                <FaFileInvoiceDollar className="me-2" /> Gestión de pedidos
               </Link>
             </li>
             <li className="nav-item">
