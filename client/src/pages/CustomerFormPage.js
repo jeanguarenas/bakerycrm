@@ -10,7 +10,9 @@ const CustomerFormPage = () => {
     firstName: '',
     lastName: '',
     phone: '',
-    address: ''
+    documentNumber: '',
+    address: '',
+    type: 'particular'
   });
   
   const [loading, setLoading] = useState(isEditing);
@@ -30,7 +32,9 @@ const CustomerFormPage = () => {
             firstName: data.firstName,
             lastName: data.lastName,
             phone: data.phone,
-            address: data.address || ''
+            documentNumber: data.documentNumber || '',
+            address: data.address || '',
+            type: data.type || 'particular'
           });
         } catch (err) {
           setError(err.message);
@@ -130,6 +134,33 @@ const CustomerFormPage = () => {
             required
             disabled={isEditing} // No permitir cambiar el teléfono si estamos editando
           />
+        </div>
+        
+        <div className="mb-3">
+          <label htmlFor="documentNumber" className="form-label">CUIT/DNI (Opcional)</label>
+          <input
+            type="text"
+            className="form-control"
+            id="documentNumber"
+            name="documentNumber"
+            value={formData.documentNumber}
+            onChange={handleChange}
+            placeholder="Ingrese CUIT o DNI si lo tiene disponible"
+          />
+        </div>
+        
+        <div className="mb-3">
+          <label htmlFor="type" className="form-label">Tipo de cliente</label>
+          <select
+            className="form-select"
+            id="type"
+            name="type"
+            value={formData.type}
+            onChange={handleChange}
+          >
+            <option value="particular">Particular</option>
+            <option value="empresa">Empresa</option>
+          </select>
         </div>
         
         <div className="mb-3">

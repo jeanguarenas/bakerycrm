@@ -26,6 +26,9 @@ const OrderSchema = new mongoose.Schema({
   paymentDate: { type: Date },
   paymentMethod: { type: String, enum: ['efectivo', 'transferencia', 'tarjeta', 'otro'], default: 'efectivo' },
   
+  // Relación con facturas
+  associatedInvoices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' }],
+  
   createdAt: { type: Date, default: Date.now }
 });
 

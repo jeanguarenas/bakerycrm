@@ -5,7 +5,9 @@ const CustomerForm = ({ initialData = {}, onSave }) => {
     firstName: initialData.firstName || '',
     lastName: initialData.lastName || '',
     phone: initialData.phone || '',
-    address: initialData.address || ''
+    documentNumber: initialData.documentNumber || '',
+    address: initialData.address || '',
+    type: initialData.type || 'particular'
   });
 
   const handleChange = (e) => {
@@ -76,6 +78,29 @@ const CustomerForm = ({ initialData = {}, onSave }) => {
             required
             disabled={!!initialData._id}
           />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">CUIT/DNI (Opcional)</label>
+          <input 
+            type="text" 
+            className="form-control" 
+            name="documentNumber"
+            value={formData.documentNumber}
+            onChange={handleChange}
+            placeholder="Ingrese CUIT o DNI si lo tiene disponible"
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Tipo de cliente</label>
+          <select
+            className="form-select"
+            name="type"
+            value={formData.type}
+            onChange={handleChange}
+          >
+            <option value="particular">Particular</option>
+            <option value="empresa">Empresa</option>
+          </select>
         </div>
         <div className="mb-3">
           <label className="form-label">Dirección</label>

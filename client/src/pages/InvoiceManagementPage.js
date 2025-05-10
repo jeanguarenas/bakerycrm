@@ -230,14 +230,26 @@ const InvoiceManagementPage = () => {
           throw new Error('ID de pedido inválido');
         }
         
+        // Preparamos el cuerpo de la solicitud con el estado de facturación
+        const requestBody = {
+          invoiceStatus: destination.droppableId
+        };
+        
+        // Al mover a pedido_completo, también se marca como completed
+        if (destination.droppableId === 'pedido_completo') {
+          // Actualizamos la tarjeta localmente también
+          updatedOrder.status = 'completed';
+        } else {
+          // Si se mueve a otra columna, se marca como pendiente
+          updatedOrder.status = 'pending';
+        }
+        
         const response = await fetch(`/api/orders/${removedOrder._id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            invoiceStatus: destination.droppableId
-          })
+          body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
@@ -245,6 +257,20 @@ const InvoiceManagementPage = () => {
           throw new Error(`Error al actualizar: ${response.status} - ${errorData}`);
         }
         
+        const updatedOrderData = await response.json();
+        
+        // Actualizar el estado local con los datos recibidos del servidor
+        // para reflejar el cambio de estado
+        const updatedColumns = JSON.parse(JSON.stringify(newColumns));
+        const updatedItem = updatedColumns[destination.droppableId].items.find(
+          item => item._id === removedOrder._id
+        );
+        
+        if (updatedItem) {
+          updatedItem.status = updatedOrderData.status;
+        }
+        
+        setColumns(updatedColumns);
         toast.success('Pedido actualizado correctamente');
       } catch (error) {
         console.error('Error actualizando pedido:', error);
@@ -299,7 +325,12 @@ const InvoiceManagementPage = () => {
                   flex: '1 1 20%'
                 }}>
                 <h5 className="p-2 bg-light border rounded-top text-center fw-bold">{column.title}</h5>
-                <Droppable droppableId={columnId} type="ORDER" direction="vertical">
+                <Droppable 
+                  droppableId={columnId} 
+                  type="ORDER" 
+                  direction="vertical"
+                  isDropDisabled={false}
+                >
                   {(provided) => (
                     <div
                       className="kanban-items p-2 border border-top-0 bg-light rounded-bottom"
@@ -363,6 +394,8 @@ const InvoiceManagementPage = () => {
                                   <span 
                                     className={`badge ${order.status === 'completed' ? 'bg-success' : 
                                       order.status === 'pending' ? 'bg-warning' : 'bg-danger'}`}
+                                    title="El estado se sincroniza automáticamente con la columna 'Pedido Completo'"
+                                    style={{ cursor: 'help' }}
                                   >
                                     {order.status === 'completed' ? 'Completado' : 
                                       order.status === 'pending' ? 'Pendiente' : 'Cancelado'}

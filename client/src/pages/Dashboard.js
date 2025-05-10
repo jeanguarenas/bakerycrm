@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaShoppingBag, FaBreadSlice, FaClipboardList, FaFileInvoiceDollar, FaChartLine } from 'react-icons/fa';
 
 const Dashboard = () => {
-  // Colores personalizados para el dashboard (paleta cálida para panadería)
+  // Estado para los contadores de cada módulo
+  const [counters, setCounters] = useState({
+    customers: 0,
+    orders: 0,
+    products: 0,
+    inventory: 0,
+    invoices: 0,
+    analytics: ''
+  });
+
+  // Estado para indicar carga
+  const [loading, setLoading] = useState(true);
+  
+  // Colores personalizados para el dashboard
   const colors = {
     customers: '#E28A31',    // Naranja cálido
     orders: '#C64639',       // Rojo tostado
@@ -12,6 +25,56 @@ const Dashboard = () => {
     invoices: '#4D7090',     // Azul tranquilo
     analytics: '#8F607A'     // Púrpura suave
   };
+
+  // Cargar datos reales al montar el componente
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        setLoading(true);
+        
+        // Obtener conteo de clientes
+        const customersRes = await fetch('/api/customers');
+        const customersData = await customersRes.json();
+        
+        // Obtener conteo de productos
+        const productsRes = await fetch('/api/products');
+        const productsData = await productsRes.json();
+        
+        // Obtener conteo de pedidos
+        const ordersRes = await fetch('/api/orders');
+        const ordersData = await ordersRes.json();
+        
+        // Obtener conteo de facturas
+        const invoicesRes = await fetch('/api/invoices');
+        const invoicesData = await invoicesRes.json();
+        
+        // Actualizar los contadores con datos reales
+        setCounters({
+          customers: customersData.length || 0,
+          orders: ordersData.length || 0,
+          products: productsData.length || 0,
+          inventory: productsData.filter(p => (p.stock || 0) > 0).length || 0,
+          invoices: invoicesData.length || 0,
+          analytics: ''
+        });
+      } catch (error) {
+        console.error('Error cargando contadores:', error);
+        // En caso de error, usar contadores básicos para que la UI funcione
+        setCounters({
+          customers: 0,
+          orders: 0,
+          products: 0,
+          inventory: 0,
+          invoices: 0,
+          analytics: ''
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCounts();
+  }, []);
 
   // Datos para las tarjetas del dashboard
   const dashboardItems = [
@@ -22,7 +85,7 @@ const Dashboard = () => {
       icon: <FaUsers size={32} />,
       color: colors.customers,
       path: '/customers',
-      count: '124'
+      count: loading ? '...' : counters.customers.toString()
     },
     {
       id: 'orders',
@@ -31,7 +94,7 @@ const Dashboard = () => {
       icon: <FaShoppingBag size={32} />,
       color: colors.orders,
       path: '/orders',
-      count: '37'
+      count: loading ? '...' : counters.orders.toString()
     },
     {
       id: 'products',
@@ -40,7 +103,7 @@ const Dashboard = () => {
       icon: <FaBreadSlice size={32} />,
       color: colors.products,
       path: '/products',
-      count: '42'
+      count: loading ? '...' : counters.products.toString()
     },
     {
       id: 'inventory',
@@ -49,16 +112,16 @@ const Dashboard = () => {
       icon: <FaClipboardList size={32} />,
       color: colors.inventory,
       path: '/inventory',
-      count: '215'
+      count: loading ? '...' : counters.inventory.toString()
     },
     {
       id: 'invoices',
-      title: 'Facturación',
-      description: 'Gestión de pedidos y facturación',
+      title: 'Gestión de pedidos',
+      description: 'Seguimiento y facturación de pedidos',
       icon: <FaFileInvoiceDollar size={32} />,
       color: colors.invoices,
       path: '/invoice-management',
-      count: '85'
+      count: loading ? '...' : counters.invoices.toString()
     },
     {
       id: 'analytics',
@@ -74,7 +137,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Panadería Don Carlos - Sistema de Gestión</h1>
+        <h1>WouK CRM - Sistema de Gestión</h1>
         <p className="dashboard-subtitle">Seleccione un módulo para comenzar</p>
       </div>
 
